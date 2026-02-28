@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Admin from "@/pages/admin";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { Analytics } from "@vercel/analytics/react";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <Analytics />
         </TooltipProvider>
       </SettingsProvider>
     </QueryClientProvider>
