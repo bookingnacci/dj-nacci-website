@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ const ThreadsIcon = ({ className }: { className?: string }) => (
 export default function Home() {
   const { toast } = useToast();
   const { 
-    heroMedia, heroDuration, aboutMedia, aboutDuration, 
+    heroMedia, aboutMedia, 
     galleryItems, socialLinks, addBookingRequest 
   } = useSettings();
 
@@ -48,27 +48,49 @@ export default function Home() {
 
   const [heroIndex, setHeroIndex] = useState(0);
   const [aboutIndex, setAboutIndex] = useState(0);
+  
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const aboutVideoRef = useRef<HTMLVideoElement>(null);
 
   // Calculate tomorrow's date for the minimum date picker constraint
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
 
-  useEffect(() => {
-    if (heroMedia.length <= 1) return;
-    const interval = setInterval(() => {
-      setHeroIndex(prev => (prev + 1) % heroMedia.length);
-    }, heroDuration * 1000);
-    return () => clearInterval(interval);
-  }, [heroMedia, heroDuration]);
+  const activeHero = heroMedia[heroIndex] || null;
+  const activeAbout = aboutMedia[aboutIndex] || null;
 
+  // Hero Media Slideshow Logic
   useEffect(() => {
-    if (aboutMedia.length <= 1) return;
-    const interval = setInterval(() => {
+    if (heroMedia.length <= 1 || !activeHero) return;
+    
+    let durationMs = activeHero.duration * 1000;
+    if (activeHero.type === 'video' && activeHero.videoEndTime !== undefined && activeHero.videoStartTime !== undefined) {
+      durationMs = Math.max(1000, (activeHero.videoEndTime - activeHero.videoStartTime) * 1000);
+    }
+
+    const timer = setTimeout(() => {
+      setHeroIndex(prev => (prev + 1) % heroMedia.length);
+    }, durationMs);
+    
+    return () => clearTimeout(timer);
+  }, [heroMedia, heroIndex, activeHero]);
+
+  // About Media Slideshow Logic
+  useEffect(() => {
+    if (aboutMedia.length <= 1 || !activeAbout) return;
+    
+    let durationMs = activeAbout.duration * 1000;
+    if (activeAbout.type === 'video' && activeAbout.videoEndTime !== undefined && activeAbout.videoStartTime !== undefined) {
+      durationMs = Math.max(1000, (activeAbout.videoEndTime - activeAbout.videoStartTime) * 1000);
+    }
+
+    const timer = setTimeout(() => {
       setAboutIndex(prev => (prev + 1) % aboutMedia.length);
-    }, aboutDuration * 1000);
-    return () => clearInterval(interval);
-  }, [aboutMedia, aboutDuration]);
+    }, durationMs);
+    
+    return () => clearTimeout(timer);
+  }, [aboutMedia, aboutIndex, activeAbout]);
 
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,9 +117,6 @@ export default function Home() {
     setBookingData({ name: "", email: "", countryCode: "+33", phone: "", date: "", eventType: "", details: "" });
   };
 
-  const activeHero = heroMedia[heroIndex] || null;
-  const activeAbout = aboutMedia[aboutIndex] || null;
-
   return (
     <div className="min-h-screen bg-background text-foreground relative selection:bg-primary/30">
       <div className="grain-overlay"></div>
@@ -110,12 +129,18 @@ export default function Home() {
             <div key={activeHero.id} className="absolute inset-0 animate-in fade-in duration-1000">
               {activeHero.type === 'video' ? (
                 <video 
-                  src={activeHero.url} 
+                  ref={heroVideoRef}
+                  src={activeHero.url + (activeHero.videoStartTime !== undefined ? `#t=${activeHero.videoStartTime},${activeHero.videoEndTime || ''}` : '')} 
                   autoPlay 
-                  loop 
                   muted 
                   playsInline 
                   className="w-full h-full object-cover opacity-60"
+                  onTimeUpdate={(e) => {
+                    if (activeHero.videoEndTime && e.currentTarget.currentTime >= activeHero.videoEndTime) {
+                      e.currentTarget.currentTime = activeHero.videoStartTime || 0;
+                      if (heroMedia.length === 1) e.currentTarget.play(); // force replay if single media
+                    }
+                  }}
                 />
               ) : (
                 <img 
@@ -160,12 +185,18 @@ export default function Home() {
                   <div key={activeAbout.id} className="absolute inset-0 animate-in fade-in duration-1000">
                     {activeAbout.type === 'video' ? (
                       <video 
-                        src={activeAbout.url} 
+                        ref={aboutVideoRef}
+                        src={activeAbout.url + (activeAbout.videoStartTime !== undefined ? `#t=${activeAbout.videoStartTime},${activeAbout.videoEndTime || ''}` : '')} 
                         autoPlay 
-                        loop 
                         muted 
                         playsInline 
                         className="w-full h-full object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-700 scale-105 group-hover:scale-100"
+                        onTimeUpdate={(e) => {
+                          if (activeAbout.videoEndTime && e.currentTarget.currentTime >= activeAbout.videoEndTime) {
+                            e.currentTarget.currentTime = activeAbout.videoStartTime || 0;
+                            if (aboutMedia.length === 1) e.currentTarget.play();
+                          }
+                        }}
                       />
                     ) : (
                       <img 

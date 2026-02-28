@@ -11,11 +11,11 @@ import { useSettings, MediaItem, SocialLinks } from "@/contexts/SettingsContext"
 
 export default function Admin() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("requests"); // Default to requests for checking
+  const [activeTab, setActiveTab] = useState("settings");
   
   const { 
-    heroMedia, heroDuration, aboutMedia, aboutDuration,
-    updateHeroMedia, updateHeroDuration, updateAboutMedia, updateAboutDuration,
+    heroMedia, aboutMedia,
+    updateHeroMedia, updateAboutMedia,
     galleryItems, addGalleryItem, removeGalleryItem,
     socialLinks, updateSocialLinks,
     bookingRequests, markBookingReviewed, deleteBooking
@@ -30,30 +30,36 @@ export default function Admin() {
 
   const [localSocials, setLocalSocials] = useState<SocialLinks>(socialLinks);
 
-  // File Upload Handlers
+  // File Upload Handlers (Supports Multiple)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, section: 'hero' | 'about' | 'gallery') => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-      const isVideo = file.type.startsWith('video/');
-      const newItem: MediaItem = { 
-        id: Date.now().toString(), 
-        type: isVideo ? 'video' : 'image', 
-        url,
-        title: file.name
-      };
+    if (e.target.files && e.target.files.length > 0) {
+      const newItems: MediaItem[] = Array.from(e.target.files).map(file => {
+        const url = URL.createObjectURL(file);
+        const isVideo = file.type.startsWith('video/');
+        return { 
+          id: Date.now().toString() + Math.random().toString(), 
+          type: isVideo ? 'video' : 'image', 
+          url,
+          title: file.name,
+          duration: 5,
+          videoStartTime: 0,
+          videoEndTime: 15
+        };
+      });
       
       if (section === 'hero') {
-        updateHeroMedia([...heroMedia, newItem]);
-        toast({ title: "Hero Media Added" });
+        updateHeroMedia([...heroMedia, ...newItems]);
+        toast({ title: `${newItems.length} Hero Media Added` });
       } else if (section === 'about') {
-        updateAboutMedia([...aboutMedia, newItem]);
-        toast({ title: "About Media Added" });
+        updateAboutMedia([...aboutMedia, ...newItems]);
+        toast({ title: `${newItems.length} About Media Added` });
       } else if (section === 'gallery') {
-        addGalleryItem(newItem);
-        toast({ title: "Added to Gallery" });
+        newItems.forEach(item => addGalleryItem(item));
+        toast({ title: `${newItems.length} Added to Gallery` });
       }
     }
+    // Reset input so the same files can be selected again if needed
+    if (e.target) e.target.value = '';
   };
 
   const removeMedia = (id: string, section: 'hero' | 'about') => {
@@ -64,10 +70,17 @@ export default function Admin() {
     }
   };
 
+  const updateMediaItem = (id: string, section: 'hero' | 'about', updates: Partial<MediaItem>) => {
+    if (section === 'hero') {
+      updateHeroMedia(heroMedia.map(m => m.id === id ? { ...m, ...updates } : m));
+    } else {
+      updateAboutMedia(aboutMedia.map(m => m.id === id ? { ...m, ...updates } : m));
+    }
+  };
+
   const handleAddYoutube = () => {
     if (!youtubeUrl) return;
     
-    // Extract ID for preview (basic implementation)
     let videoId = "";
     if (youtubeUrl.includes("v=")) {
       videoId = youtubeUrl.split("v=")[1].split("&")[0];
@@ -79,7 +92,8 @@ export default function Admin() {
       id: Date.now().toString(),
       type: 'youtube',
       url: videoId ? `https://www.youtube.com/embed/${videoId}` : youtubeUrl,
-      title: youtubeTitle || "YouTube Video"
+      title: youtubeTitle || "YouTube Video",
+      duration: 5
     });
     
     setYoutubeUrl("");
@@ -210,6 +224,7 @@ export default function Admin() {
                 <div className="flex gap-4">
                   <input 
                     type="file" 
+                    multiple
                     ref={galleryFileInputRef} 
                     className="hidden" 
                     accept="image/*,video/*" 
@@ -349,24 +364,15 @@ export default function Admin() {
                     <p className="text-muted-foreground text-sm mt-1">Manage the background visual for the top of the homepage</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs uppercase tracking-widest text-muted-foreground">Duration (sec):</label>
-                      <Input 
-                        type="number" 
-                        value={heroDuration} 
-                        onChange={(e) => updateHeroDuration(Number(e.target.value))}
-                        className="w-20 bg-black/50 border-border/30 rounded-none h-10 text-center" 
-                        min="1"
-                      />
-                    </div>
                     <Button 
                       onClick={() => heroFileInputRef.current?.click()}
                       className="rounded-none bg-primary/20 text-primary border border-primary hover:bg-primary hover:text-black uppercase text-xs tracking-widest h-10"
                     >
-                      <Upload className="mr-2" size={16} /> Upload
+                      <Upload className="mr-2" size={16} /> Upload Multiple
                     </Button>
                     <input 
                       type="file" 
+                      multiple
                       ref={heroFileInputRef} 
                       className="hidden" 
                       accept="image/*,video/*" 
@@ -375,24 +381,65 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {heroMedia.map((media) => (
-                    <div key={media.id} className="group relative aspect-video bg-black border border-border/20 overflow-hidden">
-                      {media.type === 'image' ? (
-                        <img src={media.url} alt="Hero" className="w-full h-full object-cover" />
-                      ) : (
-                        <video src={media.url} className="w-full h-full object-cover" muted />
-                      )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div key={media.id} className="group flex flex-col bg-card border border-border/20 overflow-hidden relative">
+                      <div className="aspect-video bg-black relative">
+                        {media.type === 'image' ? (
+                          <img src={media.url} alt="Hero" className="w-full h-full object-cover" />
+                        ) : (
+                          <video src={media.url} className="w-full h-full object-cover" muted />
+                        )}
+                        <div className="absolute top-2 left-2 text-[10px] bg-black/80 px-2 py-1 uppercase text-primary border border-primary/30">
+                          {media.type}
+                        </div>
                         <button 
                           onClick={() => removeMedia(media.id, 'hero')}
-                          className="p-2 bg-destructive text-white rounded-full hover:bg-red-600"
+                          className="absolute top-2 right-2 p-2 bg-destructive text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
-                      <div className="absolute bottom-2 left-2 text-[10px] bg-black/80 px-2 py-1 uppercase text-primary border border-primary/30">
-                        {media.type}
+                      
+                      <div className="p-4 bg-black/80 border-t border-border/20">
+                        {media.type === 'image' ? (
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs uppercase tracking-widest text-muted-foreground">Duration (sec):</label>
+                            <Input 
+                              type="number" 
+                              value={media.duration} 
+                              onChange={(e) => updateMediaItem(media.id, 'hero', { duration: Number(e.target.value) })}
+                              className="w-20 bg-black border-border/30 rounded-none h-8 text-center text-xs" 
+                              min="1"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Start (sec):</label>
+                              <Input 
+                                type="number" 
+                                value={media.videoStartTime} 
+                                onChange={(e) => updateMediaItem(media.id, 'hero', { videoStartTime: Number(e.target.value) })}
+                                className="w-16 bg-black border-border/30 rounded-none h-8 text-center text-xs" 
+                                min="0"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="text-[10px] uppercase tracking-widest text-muted-foreground">End (sec):</label>
+                              <Input 
+                                type="number" 
+                                value={media.videoEndTime} 
+                                onChange={(e) => updateMediaItem(media.id, 'hero', { videoEndTime: Number(e.target.value) })}
+                                className="w-16 bg-black border-border/30 rounded-none h-8 text-center text-xs" 
+                                min="1"
+                              />
+                            </div>
+                            <div className="pt-2 border-t border-border/20 text-[10px] text-primary uppercase tracking-widest text-right">
+                              Play Time: {Math.max(0, (media.videoEndTime || 0) - (media.videoStartTime || 0))}s
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -412,24 +459,15 @@ export default function Admin() {
                     <p className="text-muted-foreground text-sm mt-1">Manage the visual for "The Artist" section</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs uppercase tracking-widest text-muted-foreground">Duration (sec):</label>
-                      <Input 
-                        type="number" 
-                        value={aboutDuration} 
-                        onChange={(e) => updateAboutDuration(Number(e.target.value))}
-                        className="w-20 bg-black/50 border-border/30 rounded-none h-10 text-center" 
-                        min="1"
-                      />
-                    </div>
                     <Button 
                       onClick={() => aboutFileInputRef.current?.click()}
                       className="rounded-none bg-primary/20 text-primary border border-primary hover:bg-primary hover:text-black uppercase text-xs tracking-widest h-10"
                     >
-                      <Upload className="mr-2" size={16} /> Upload
+                      <Upload className="mr-2" size={16} /> Upload Multiple
                     </Button>
                     <input 
                       type="file" 
+                      multiple
                       ref={aboutFileInputRef} 
                       className="hidden" 
                       accept="image/*,video/*" 
@@ -438,24 +476,65 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {aboutMedia.map((media) => (
-                    <div key={media.id} className="group relative aspect-[3/4] bg-black border border-border/20 overflow-hidden">
-                      {media.type === 'image' ? (
-                        <img src={media.url} alt="About" className="w-full h-full object-cover" />
-                      ) : (
-                        <video src={media.url} className="w-full h-full object-cover" muted />
-                      )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div key={media.id} className="group flex flex-col bg-card border border-border/20 overflow-hidden relative">
+                      <div className="aspect-[3/4] bg-black relative">
+                        {media.type === 'image' ? (
+                          <img src={media.url} alt="About" className="w-full h-full object-cover" />
+                        ) : (
+                          <video src={media.url} className="w-full h-full object-cover" muted />
+                        )}
+                        <div className="absolute top-2 left-2 text-[10px] bg-black/80 px-2 py-1 uppercase text-primary border border-primary/30">
+                          {media.type}
+                        </div>
                         <button 
                           onClick={() => removeMedia(media.id, 'about')}
-                          className="p-2 bg-destructive text-white rounded-full hover:bg-red-600"
+                          className="absolute top-2 right-2 p-2 bg-destructive text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
-                      <div className="absolute bottom-2 left-2 text-[10px] bg-black/80 px-2 py-1 uppercase text-primary border border-primary/30">
-                        {media.type}
+                      
+                      <div className="p-4 bg-black/80 border-t border-border/20">
+                        {media.type === 'image' ? (
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Duration (sec):</label>
+                            <Input 
+                              type="number" 
+                              value={media.duration} 
+                              onChange={(e) => updateMediaItem(media.id, 'about', { duration: Number(e.target.value) })}
+                              className="w-16 bg-black border-border/30 rounded-none h-8 text-center text-xs" 
+                              min="1"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Start:</label>
+                              <Input 
+                                type="number" 
+                                value={media.videoStartTime} 
+                                onChange={(e) => updateMediaItem(media.id, 'about', { videoStartTime: Number(e.target.value) })}
+                                className="w-12 bg-black border-border/30 rounded-none h-8 text-center text-xs px-1" 
+                                min="0"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <label className="text-[10px] uppercase tracking-widest text-muted-foreground">End:</label>
+                              <Input 
+                                type="number" 
+                                value={media.videoEndTime} 
+                                onChange={(e) => updateMediaItem(media.id, 'about', { videoEndTime: Number(e.target.value) })}
+                                className="w-12 bg-black border-border/30 rounded-none h-8 text-center text-xs px-1" 
+                                min="1"
+                              />
+                            </div>
+                            <div className="pt-2 border-t border-border/20 text-[10px] text-primary uppercase tracking-widest text-right">
+                              Play: {Math.max(0, (media.videoEndTime || 0) - (media.videoStartTime || 0))}s
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

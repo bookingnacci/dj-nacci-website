@@ -7,6 +7,9 @@ export type MediaItem = {
   type: 'image' | 'video' | 'youtube';
   url: string;
   title?: string;
+  duration: number; // For images
+  videoStartTime?: number; // For videos
+  videoEndTime?: number; // For videos
 };
 
 export type SocialLinks = {
@@ -31,13 +34,9 @@ export type BookingRequest = {
 interface SettingsState {
   // Hero & About
   heroMedia: MediaItem[];
-  heroDuration: number;
   aboutMedia: MediaItem[];
-  aboutDuration: number;
   updateHeroMedia: (media: MediaItem[]) => void;
-  updateHeroDuration: (duration: number) => void;
   updateAboutMedia: (media: MediaItem[]) => void;
-  updateAboutDuration: (duration: number) => void;
   
   // Gallery
   galleryItems: MediaItem[];
@@ -60,19 +59,17 @@ const SettingsContext = createContext<SettingsState | null>(null);
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // Hero & About Settings
   const [heroMedia, setHeroMedia] = useState<MediaItem[]>([
-    { id: '1', type: 'image', url: heroBg }
+    { id: '1', type: 'image', url: heroBg, duration: 5 }
   ]);
-  const [heroDuration, setHeroDuration] = useState(5);
   
   const [aboutMedia, setAboutMedia] = useState<MediaItem[]>([
-    { id: '1', type: 'image', url: djPortrait }
+    { id: '1', type: 'image', url: djPortrait, duration: 5 }
   ]);
-  const [aboutDuration, setAboutDuration] = useState(5);
 
   // Gallery
   const [galleryItems, setGalleryItems] = useState<MediaItem[]>([
-    { id: '101', type: 'image', url: 'https://images.unsplash.com/photo-1598387181032-a3103a2db5b3?q=80&w=2000&auto=format&fit=crop', title: 'Live at Paris' },
-    { id: '103', type: 'image', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2000&auto=format&fit=crop', title: 'Studio Sessions' }
+    { id: '101', type: 'image', url: 'https://images.unsplash.com/photo-1598387181032-a3103a2db5b3?q=80&w=2000&auto=format&fit=crop', title: 'Live at Paris', duration: 5 },
+    { id: '103', type: 'image', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2000&auto=format&fit=crop', title: 'Studio Sessions', duration: 5 }
   ]);
 
   const addGalleryItem = (item: MediaItem) => setGalleryItems(prev => [item, ...prev]);
@@ -123,9 +120,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <SettingsContext.Provider value={{
-      heroMedia, heroDuration, aboutMedia, aboutDuration,
-      updateHeroMedia: setHeroMedia, updateHeroDuration: setHeroDuration,
-      updateAboutMedia: setAboutMedia, updateAboutDuration: setAboutDuration,
+      heroMedia, aboutMedia,
+      updateHeroMedia: setHeroMedia,
+      updateAboutMedia: setAboutMedia,
       galleryItems, addGalleryItem, removeGalleryItem,
       socialLinks, updateSocialLinks,
       bookingRequests, addBookingRequest, markBookingReviewed, deleteBooking
