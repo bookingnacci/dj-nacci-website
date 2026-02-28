@@ -20,6 +20,7 @@ export type BookingRequest = {
   id: string;
   name: string;
   email: string;
+  phone: string;
   date: string;
   eventType: string;
   details: string;
@@ -93,9 +94,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       id: 'b1',
       name: 'Hï Ibiza',
       email: 'booking@hiibiza.com',
+      phone: '+34 971 31 38 00',
       date: '2026-07-15',
       eventType: 'Club Night',
-      details: 'Looking to book for a 3-hour afro house set in the main room.',
+      details: 'Looking to book for a 3-hour afro house set in the main room. We are expecting a full house with our usual VIP setup. Please let us know technical requirements and availability.',
       status: 'new',
       createdAt: new Date()
     }

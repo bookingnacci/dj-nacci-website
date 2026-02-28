@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Image as ImageIcon, Video, Trash2, Link as LinkIcon, 
-  Settings, LayoutGrid, Upload, Inbox, Check, Youtube 
+  Settings, LayoutGrid, Upload, Inbox, Check, Youtube, Phone
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings, MediaItem, SocialLinks } from "@/contexts/SettingsContext";
 
 export default function Admin() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("gallery");
+  const [activeTab, setActiveTab] = useState("requests"); // Default to requests for checking
   
   const { 
     heroMedia, heroDuration, aboutMedia, aboutDuration,
@@ -106,14 +106,6 @@ export default function Admin() {
           </div>
           
           <button 
-            onClick={() => setActiveTab("gallery")}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-left uppercase tracking-widest text-sm transition-colors ${activeTab === "gallery" ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:bg-card hover:text-white"}`}
-          >
-            <LayoutGrid size={18} />
-            Gallery
-          </button>
-          
-          <button 
             onClick={() => setActiveTab("requests")}
             className={`w-full flex items-center gap-3 px-4 py-3 text-left uppercase tracking-widest text-sm transition-colors justify-between ${activeTab === "requests" ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:bg-card hover:text-white"}`}
           >
@@ -126,6 +118,14 @@ export default function Admin() {
                 {bookingRequests.filter(r => r.status === 'new').length}
               </span>
             )}
+          </button>
+
+          <button 
+            onClick={() => setActiveTab("gallery")}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-left uppercase tracking-widest text-sm transition-colors ${activeTab === "gallery" ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:bg-card hover:text-white"}`}
+          >
+            <LayoutGrid size={18} />
+            Gallery
           </button>
 
           <button 
@@ -148,6 +148,58 @@ export default function Admin() {
         {/* Content */}
         <div className="flex-1 glass-panel p-8 min-h-[600px] border-t-2 border-t-primary/30">
           
+          {activeTab === "requests" && (
+            <div className="space-y-8 animate-in fade-in">
+              <div className="border-b border-border/20 pb-4">
+                <h2 className="font-serif text-2xl uppercase tracking-widest text-glow">Booking Requests</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {bookingRequests.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-12 uppercase tracking-widest text-sm border border-dashed border-border/20">No booking requests yet.</p>
+                ) : (
+                  bookingRequests.map((req) => (
+                    <div key={req.id} className={`p-6 border ${req.status === 'new' ? 'border-primary/50 bg-primary/5' : 'border-border/20 bg-background/30'} flex flex-col md:flex-row justify-between gap-6`}>
+                      <div className="space-y-4 flex-1">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="font-serif text-xl font-bold uppercase">{req.name}</h3>
+                              {req.status === 'new' && <span className="bg-primary text-black text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-widest font-bold">New</span>}
+                            </div>
+                            <p className="text-primary text-sm tracking-widest">{req.email}</p>
+                            <p className="text-muted-foreground text-xs mt-1 flex items-center gap-2">
+                              <Phone size={12} /> {req.phone}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="uppercase tracking-widest text-sm font-bold">{new Date(req.date).toLocaleDateString()}</p>
+                            <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{req.eventType}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-black/40 border border-border/10 text-sm text-muted-foreground leading-relaxed">
+                          {req.details}
+                        </div>
+                      </div>
+                      
+                      <div className="flex md:flex-col gap-2 justify-end">
+                        {req.status === 'new' && (
+                          <Button onClick={() => markBookingReviewed(req.id)} className="rounded-none bg-primary text-black hover:bg-white uppercase tracking-widest text-xs h-10 w-full">
+                            <Check className="mr-2" size={14} /> Mark Reviewed
+                          </Button>
+                        )}
+                        <Button onClick={() => deleteBooking(req.id)} variant="outline" className="rounded-none border-destructive/50 text-destructive hover:bg-destructive hover:text-white uppercase tracking-widest text-xs h-10 w-full">
+                          <Trash2 className="mr-2" size={14} /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {activeTab === "gallery" && (
             <div className="space-y-8 animate-in fade-in">
               <div className="flex justify-between items-center border-b border-border/20 pb-4">
@@ -232,55 +284,6 @@ export default function Admin() {
                   <div className="col-span-full py-12 text-center text-muted-foreground uppercase tracking-widest text-sm border border-dashed border-border/20">
                     No media in gallery.
                   </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "requests" && (
-            <div className="space-y-8 animate-in fade-in">
-              <div className="border-b border-border/20 pb-4">
-                <h2 className="font-serif text-2xl uppercase tracking-widest text-glow">Booking Requests</h2>
-              </div>
-              
-              <div className="space-y-4">
-                {bookingRequests.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-12 uppercase tracking-widest text-sm border border-dashed border-border/20">No booking requests yet.</p>
-                ) : (
-                  bookingRequests.map((req) => (
-                    <div key={req.id} className={`p-6 border ${req.status === 'new' ? 'border-primary/50 bg-primary/5' : 'border-border/20 bg-background/30'} flex flex-col md:flex-row justify-between gap-6`}>
-                      <div className="space-y-4 flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center gap-3 mb-1">
-                              <h3 className="font-serif text-xl font-bold uppercase">{req.name}</h3>
-                              {req.status === 'new' && <span className="bg-primary text-black text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-widest font-bold">New</span>}
-                            </div>
-                            <p className="text-primary text-sm tracking-widest">{req.email}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="uppercase tracking-widest text-sm font-bold">{new Date(req.date).toLocaleDateString()}</p>
-                            <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">{req.eventType}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="p-4 bg-black/40 border border-border/10 text-sm text-muted-foreground leading-relaxed">
-                          {req.details}
-                        </div>
-                      </div>
-                      
-                      <div className="flex md:flex-col gap-2 justify-end">
-                        {req.status === 'new' && (
-                          <Button onClick={() => markBookingReviewed(req.id)} className="rounded-none bg-primary text-black hover:bg-white uppercase tracking-widest text-xs h-10 w-full">
-                            <Check className="mr-2" size={14} /> Mark Reviewed
-                          </Button>
-                        )}
-                        <Button onClick={() => deleteBooking(req.id)} variant="outline" className="rounded-none border-destructive/50 text-destructive hover:bg-destructive hover:text-white uppercase tracking-widest text-xs h-10 w-full">
-                          <Trash2 className="mr-2" size={14} /> Delete
-                        </Button>
-                      </div>
-                    </div>
-                  ))
                 )}
               </div>
             </div>

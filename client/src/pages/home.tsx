@@ -27,6 +27,7 @@ export default function Home() {
   const [bookingData, setBookingData] = useState({
     name: "",
     email: "",
+    phone: "",
     date: "",
     eventType: "",
     details: ""
@@ -53,13 +54,23 @@ export default function Home() {
 
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (bookingData.details.length < 200) {
+      toast({
+        title: "More Details Needed",
+        description: "Please provide at least 200 characters in the event details section.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     addBookingRequest(bookingData);
     toast({
       title: "Booking Request Sent",
       description: "DJ Nacci's management will review your request.",
       variant: "default",
     });
-    setBookingData({ name: "", email: "", date: "", eventType: "", details: "" });
+    setBookingData({ name: "", email: "", phone: "", date: "", eventType: "", details: "" });
   };
 
   const activeHero = heroMedia[heroIndex] || null;
@@ -254,7 +265,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
-                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Full Name / Organization</label>
+                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Full Name / Organization <span className="text-destructive">*</span></label>
                 <Input 
                   required
                   value={bookingData.name}
@@ -264,7 +275,7 @@ export default function Home() {
                 />
               </div>
               <div className="space-y-3">
-                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Email Address</label>
+                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Email Address <span className="text-destructive">*</span></label>
                 <Input 
                   required
                   type="email"
@@ -276,9 +287,20 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Event Date</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+              <div className="space-y-3 md:col-span-1">
+                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Phone Number <span className="text-destructive">*</span></label>
+                <Input 
+                  required
+                  type="tel"
+                  value={bookingData.phone}
+                  onChange={(e) => setBookingData({...bookingData, phone: e.target.value})}
+                  className="bg-black/30 border-b border-border/30 border-t-0 border-x-0 rounded-none h-12 px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors text-lg" 
+                  placeholder="+33 6..."
+                />
+              </div>
+              <div className="space-y-3 md:col-span-1">
+                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Event Date <span className="text-destructive">*</span></label>
                 <Input 
                   required
                   type="date"
@@ -287,11 +309,11 @@ export default function Home() {
                   className="bg-black/30 border-b border-border/30 border-t-0 border-x-0 rounded-none h-12 px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors text-lg [color-scheme:dark]" 
                 />
               </div>
-              <div className="space-y-3">
-                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Event Type / Location</label>
+              <div className="space-y-3 md:col-span-1">
+                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Location / Type <span className="text-destructive">*</span></label>
                 <Input 
                   required
-                  placeholder="e.g. Night Club in Paris"
+                  placeholder="e.g. Paris - Club"
                   value={bookingData.eventType}
                   onChange={(e) => setBookingData({...bookingData, eventType: e.target.value})}
                   className="bg-black/30 border-b border-border/30 border-t-0 border-x-0 rounded-none h-12 px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors text-lg" 
@@ -300,9 +322,15 @@ export default function Home() {
             </div>
 
             <div className="space-y-3 pt-4">
-              <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Event Details</label>
+              <div className="flex justify-between">
+                <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Event Details <span className="text-destructive">*</span></label>
+                <span className={`text-[10px] uppercase tracking-widest ${bookingData.details.length < 200 ? 'text-destructive' : 'text-primary'}`}>
+                  {bookingData.details.length}/200 min
+                </span>
+              </div>
               <Textarea 
                 required
+                minLength={200}
                 placeholder="Tell us more about the event, expected capacity, technical requirements..."
                 value={bookingData.details}
                 onChange={(e) => setBookingData({...bookingData, details: e.target.value})}
