@@ -8,6 +8,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Instagram, Youtube } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 
+// List of basic country codes for the select dropdown
+const COUNTRY_CODES = [
+  { code: "+33", label: "FR (+33)" },
+  { code: "+1", label: "US/CA (+1)" },
+  { code: "+44", label: "UK (+44)" },
+  { code: "+49", label: "DE (+49)" },
+  { code: "+34", label: "ES (+34)" },
+  { code: "+39", label: "IT (+39)" },
+  { code: "+216", label: "TN (+216)" },
+  { code: "+971", label: "AE (+971)" }
+];
+
 // Thread icon custom SVG
 const ThreadsIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -27,6 +39,7 @@ export default function Home() {
   const [bookingData, setBookingData] = useState({
     name: "",
     email: "",
+    countryCode: "+33",
     phone: "",
     date: "",
     eventType: "",
@@ -35,6 +48,11 @@ export default function Home() {
 
   const [heroIndex, setHeroIndex] = useState(0);
   const [aboutIndex, setAboutIndex] = useState(0);
+
+  // Calculate tomorrow's date for the minimum date picker constraint
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
 
   useEffect(() => {
     if (heroMedia.length <= 1) return;
@@ -64,13 +82,17 @@ export default function Home() {
       return;
     }
 
-    addBookingRequest(bookingData);
+    addBookingRequest({
+      ...bookingData,
+      phone: `${bookingData.countryCode} ${bookingData.phone}`
+    });
+    
     toast({
       title: "Booking Request Sent",
       description: "DJ Nacci's management will review your request.",
       variant: "default",
     });
-    setBookingData({ name: "", email: "", phone: "", date: "", eventType: "", details: "" });
+    setBookingData({ name: "", email: "", countryCode: "+33", phone: "", date: "", eventType: "", details: "" });
   };
 
   const activeHero = heroMedia[heroIndex] || null;
@@ -179,7 +201,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* GALLERY SECTION (NEW) */}
+      {/* GALLERY SECTION */}
       {galleryItems.length > 0 && (
         <section className="py-24 bg-black/50 border-y border-border/10">
           <div className="container mx-auto px-6">
@@ -290,20 +312,34 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
               <div className="space-y-3 md:col-span-1">
                 <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Phone Number <span className="text-destructive">*</span></label>
-                <Input 
-                  required
-                  type="tel"
-                  value={bookingData.phone}
-                  onChange={(e) => setBookingData({...bookingData, phone: e.target.value})}
-                  className="bg-black/30 border-b border-border/30 border-t-0 border-x-0 rounded-none h-12 px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors text-lg" 
-                  placeholder="+33 6..."
-                />
+                <div className="flex bg-black/30 border-b border-border/30 focus-within:border-primary transition-colors h-12">
+                  <select 
+                    value={bookingData.countryCode}
+                    onChange={(e) => setBookingData({...bookingData, countryCode: e.target.value})}
+                    className="bg-transparent text-foreground border-none outline-none focus:ring-0 text-sm px-2 w-24 cursor-pointer"
+                  >
+                    {COUNTRY_CODES.map(country => (
+                      <option key={country.code} value={country.code} className="bg-background">
+                        {country.code}
+                      </option>
+                    ))}
+                  </select>
+                  <Input 
+                    required
+                    type="tel"
+                    value={bookingData.phone}
+                    onChange={(e) => setBookingData({...bookingData, phone: e.target.value})}
+                    className="bg-transparent border-none rounded-none h-full px-2 focus-visible:ring-0 text-lg flex-1" 
+                    placeholder="612345678"
+                  />
+                </div>
               </div>
               <div className="space-y-3 md:col-span-1">
                 <label className="uppercase tracking-widest text-[10px] text-primary font-bold">Event Date <span className="text-destructive">*</span></label>
                 <Input 
                   required
                   type="date"
+                  min={minDate}
                   value={bookingData.date}
                   onChange={(e) => setBookingData({...bookingData, date: e.target.value})}
                   className="bg-black/30 border-b border-border/30 border-t-0 border-x-0 rounded-none h-12 px-0 focus-visible:ring-0 focus-visible:border-primary transition-colors text-lg [color-scheme:dark]" 
