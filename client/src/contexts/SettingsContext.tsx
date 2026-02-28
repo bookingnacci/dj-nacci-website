@@ -1,15 +1,15 @@
-import React, { createContext, useState, useContext } from 'react';
-import heroBg from "@/assets/images/hero-bg.png";
-import djPortrait from "@/assets/images/dj-portrait.png";
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 export type MediaItem = {
   id: string;
-  type: 'image' | 'video' | 'youtube';
+  section: string;
+  type: string;
   url: string;
-  title?: string;
-  duration: number; // For images
-  videoStartTime?: number; // For videos
-  videoEndTime?: number; // For videos
+  title?: string | null;
+  duration: number;
+  videoStartTime?: number | null;
+  videoEndTime?: number | null;
+  position: number;
 };
 
 export type SocialLinks = {
@@ -27,105 +27,187 @@ export type BookingRequest = {
   date: string;
   eventType: string;
   details: string;
-  status: 'new' | 'reviewed';
-  createdAt: Date;
+  status: string;
+  createdAt: string;
 };
 
 interface SettingsState {
-  // Hero & About
   heroMedia: MediaItem[];
   aboutMedia: MediaItem[];
-  updateHeroMedia: (media: MediaItem[]) => void;
-  updateAboutMedia: (media: MediaItem[]) => void;
-  
-  // Gallery
   galleryItems: MediaItem[];
-  addGalleryItem: (item: MediaItem) => void;
-  removeGalleryItem: (id: string) => void;
-  
-  // Socials
   socialLinks: SocialLinks;
-  updateSocialLinks: (links: SocialLinks) => void;
-  
-  // Bookings
   bookingRequests: BookingRequest[];
-  addBookingRequest: (request: Omit<BookingRequest, 'id' | 'createdAt' | 'status'>) => void;
-  markBookingReviewed: (id: string) => void;
-  deleteBooking: (id: string) => void;
+  loading: boolean;
+
+  refreshHeroMedia: () => Promise<void>;
+  refreshAboutMedia: () => Promise<void>;
+  refreshGallery: () => Promise<void>;
+  refreshSocialLinks: () => Promise<void>;
+  refreshBookings: () => Promise<void>;
+
+  uploadMedia: (section: string, files: File[]) => Promise<void>;
+  addYoutubeToGallery: (url: string, title: string) => Promise<void>;
+  updateMediaItem: (id: string, updates: Partial<MediaItem>) => Promise<void>;
+  deleteMediaItem: (id: string, section: string) => Promise<void>;
+  reorderMedia: (section: string, ids: string[]) => Promise<void>;
+
+  updateSocialLinks: (links: SocialLinks) => Promise<void>;
+
+  addBookingRequest: (request: Omit<BookingRequest, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  markBookingReviewed: (id: string) => Promise<void>;
+  deleteBooking: (id: string) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsState | null>(null);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  // Hero & About Settings
-  const [heroMedia, setHeroMedia] = useState<MediaItem[]>([
-    { id: '1', type: 'image', url: heroBg, duration: 5 }
-  ]);
-  
-  const [aboutMedia, setAboutMedia] = useState<MediaItem[]>([
-    { id: '1', type: 'image', url: djPortrait, duration: 5 }
-  ]);
-
-  // Gallery
-  const [galleryItems, setGalleryItems] = useState<MediaItem[]>([
-    { id: '101', type: 'image', url: 'https://images.unsplash.com/photo-1598387181032-a3103a2db5b3?q=80&w=2000&auto=format&fit=crop', title: 'Live at Paris', duration: 5 },
-    { id: '103', type: 'image', url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?q=80&w=2000&auto=format&fit=crop', title: 'Studio Sessions', duration: 5 }
-  ]);
-
-  const addGalleryItem = (item: MediaItem) => setGalleryItems(prev => [item, ...prev]);
-  const removeGalleryItem = (id: string) => setGalleryItems(prev => prev.filter(item => item.id !== id));
-
-  // Social Links
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>({
-    instagram: "https://instagram.com/djnacci",
-    tiktok: "https://tiktok.com/@djnacci",
-    youtube: "https://youtube.com/c/djnacci",
-    threads: "https://threads.net/@djnacci"
+  const [heroMedia, setHeroMedia] = useState<MediaItem[]>([]);
+  const [aboutMedia, setAboutMedia] = useState<MediaItem[]>([]);
+  const [galleryItems, setGalleryItems] = useState<MediaItem[]>([]);
+  const [socialLinksState, setSocialLinksState] = useState<SocialLinks>({
+    instagram: "", tiktok: "", youtube: "", threads: ""
   });
+  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const updateSocialLinks = (links: SocialLinks) => setSocialLinks(links);
+  const refreshHeroMedia = useCallback(async () => {
+    const res = await fetch("/api/media/hero");
+    setHeroMedia(await res.json());
+  }, []);
 
-  // Booking Requests
-  const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([
-    {
-      id: 'b1',
-      name: 'Hï Ibiza',
-      email: 'booking@hiibiza.com',
-      phone: '+34 971 31 38 00',
-      date: '2026-07-15',
-      eventType: 'Club Night',
-      details: 'Looking to book for a 3-hour afro house set in the main room. We are expecting a full house with our usual VIP setup. Please let us know technical requirements and availability.',
-      status: 'new',
-      createdAt: new Date()
+  const refreshAboutMedia = useCallback(async () => {
+    const res = await fetch("/api/media/about");
+    setAboutMedia(await res.json());
+  }, []);
+
+  const refreshGallery = useCallback(async () => {
+    const res = await fetch("/api/media/gallery");
+    setGalleryItems(await res.json());
+  }, []);
+
+  const refreshSocialLinks = useCallback(async () => {
+    const res = await fetch("/api/social-links");
+    const links: { platform: string; url: string }[] = await res.json();
+    const mapped: SocialLinks = { instagram: "", tiktok: "", youtube: "", threads: "" };
+    links.forEach(l => {
+      if (l.platform in mapped) (mapped as any)[l.platform] = l.url;
+    });
+    setSocialLinksState(mapped);
+  }, []);
+
+  const refreshBookings = useCallback(async () => {
+    const res = await fetch("/api/booking-requests");
+    setBookingRequests(await res.json());
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      refreshHeroMedia(),
+      refreshAboutMedia(),
+      refreshGallery(),
+      refreshSocialLinks(),
+      refreshBookings()
+    ]).finally(() => setLoading(false));
+  }, [refreshHeroMedia, refreshAboutMedia, refreshGallery, refreshSocialLinks, refreshBookings]);
+
+  const uploadMedia = async (section: string, files: File[]) => {
+    const formData = new FormData();
+    formData.append("section", section);
+    files.forEach(f => formData.append("files", f));
+    await fetch("/api/media/upload", { method: "POST", body: formData });
+    if (section === "hero") await refreshHeroMedia();
+    else if (section === "about") await refreshAboutMedia();
+    else await refreshGallery();
+  };
+
+  const addYoutubeToGallery = async (url: string, title: string) => {
+    let videoId = "";
+    if (url.includes("v=")) videoId = url.split("v=")[1].split("&")[0];
+    else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].split("?")[0];
+
+    await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        section: "gallery",
+        type: "youtube",
+        url: videoId ? `https://www.youtube.com/embed/${videoId}` : url,
+        title: title || "YouTube Video",
+        duration: 5,
+        position: 0
+      })
+    });
+    await refreshGallery();
+  };
+
+  const updateMediaItem = async (id: string, updates: Partial<MediaItem>) => {
+    await fetch(`/api/media/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates)
+    });
+    await Promise.all([refreshHeroMedia(), refreshAboutMedia(), refreshGallery()]);
+  };
+
+  const deleteMediaItem = async (id: string, section: string) => {
+    await fetch(`/api/media/${id}`, { method: "DELETE" });
+    if (section === "hero") await refreshHeroMedia();
+    else if (section === "about") await refreshAboutMedia();
+    else await refreshGallery();
+  };
+
+  const reorderMedia = async (section: string, ids: string[]) => {
+    await fetch("/api/media/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ section, ids })
+    });
+    if (section === "hero") await refreshHeroMedia();
+    else if (section === "about") await refreshAboutMedia();
+    else await refreshGallery();
+  };
+
+  const updateSocialLinks = async (links: SocialLinks) => {
+    for (const [platform, url] of Object.entries(links)) {
+      await fetch("/api/social-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform, url })
+      });
     }
-  ]);
-
-  const addBookingRequest = (request: Omit<BookingRequest, 'id' | 'createdAt' | 'status'>) => {
-    const newRequest: BookingRequest = {
-      ...request,
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'new',
-      createdAt: new Date()
-    };
-    setBookingRequests(prev => [newRequest, ...prev]);
+    await refreshSocialLinks();
   };
 
-  const markBookingReviewed = (id: string) => {
-    setBookingRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'reviewed' } : req));
+  const addBookingRequest = async (request: Omit<BookingRequest, 'id' | 'createdAt' | 'status'>) => {
+    await fetch("/api/booking-requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request)
+    });
+    await refreshBookings();
   };
-  
-  const deleteBooking = (id: string) => {
-    setBookingRequests(prev => prev.filter(req => req.id !== id));
+
+  const markBookingReviewed = async (id: string) => {
+    await fetch(`/api/booking-requests/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "reviewed" })
+    });
+    await refreshBookings();
+  };
+
+  const deleteBooking = async (id: string) => {
+    await fetch(`/api/booking-requests/${id}`, { method: "DELETE" });
+    await refreshBookings();
   };
 
   return (
     <SettingsContext.Provider value={{
-      heroMedia, aboutMedia,
-      updateHeroMedia: setHeroMedia,
-      updateAboutMedia: setAboutMedia,
-      galleryItems, addGalleryItem, removeGalleryItem,
-      socialLinks, updateSocialLinks,
-      bookingRequests, addBookingRequest, markBookingReviewed, deleteBooking
+      heroMedia, aboutMedia, galleryItems, socialLinks: socialLinksState,
+      bookingRequests, loading,
+      refreshHeroMedia, refreshAboutMedia, refreshGallery, refreshSocialLinks, refreshBookings,
+      uploadMedia, addYoutubeToGallery, updateMediaItem, deleteMediaItem, reorderMedia,
+      updateSocialLinks, addBookingRequest, markBookingReviewed, deleteBooking
     }}>
       {children}
     </SettingsContext.Provider>
