@@ -190,7 +190,7 @@ export default function Home() {
                   With over <span className="text-primary font-medium">20 years of dedication</span> to the art of music, Nacci's journey began in Tunisia where he discovered his passion for creating unforgettable sonic experiences. His early roots in R&B and hip-hop culture shaped a uniquely fluid musical ear that would become his signature.
                 </p>
                 <p>
-                  After establishing himself in Tunisia, Nacci relocated to France, where he developed and expanded his career throughout Europe and the Middle East. His versatile approach and deep understanding of rhythm allowed him to share decks with industry heavyweights including <span className="text-white font-medium">JAMIIE, ENOO NAPA, AARON SEVILLA, HVMZA, ADASSIYA, CAIIRO, PAUZA, and NITEFREAK</span>.
+                  After establishing himself in Tunisia, Nacci relocated to France, where he developed and expanded his career throughout Europe and the Middle East. His versatile approach and deep understanding of rhythm allowed him to share decks with industry heavyweights including <span className="text-white font-medium">JAMIIE, ENOO NAPA, AARON SEVILLA, HVMZA, ADASSIYA, CAIIRO, PAUZA, NITEFREAK, and many more</span>.
                 </p>
                 <p>
                   Passionate about Afro House, Nacci's musical expression knows no boundaries. He masters all musical styles with equal virtuosity, creating limitless mixes that transcend genres. Through his music, he builds profound connections with his audience, transforming each performance into a shared emotional journey that resonates long after the final beat.
