@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -6,13 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Instagram, Youtube } from "lucide-react";
-
-// Assets
-import heroBg from "@/assets/images/hero-bg.png";
-import djPortrait from "@/assets/images/dj-portrait.png";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export default function Home() {
   const { toast } = useToast();
+  const { heroMedia, heroDuration, aboutMedia, aboutDuration } = useSettings();
+
   const [bookingData, setBookingData] = useState({
     name: "",
     email: "",
@@ -20,6 +19,25 @@ export default function Home() {
     eventType: "",
     details: ""
   });
+
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [aboutIndex, setAboutIndex] = useState(0);
+
+  useEffect(() => {
+    if (heroMedia.length <= 1) return;
+    const interval = setInterval(() => {
+      setHeroIndex(prev => (prev + 1) % heroMedia.length);
+    }, heroDuration * 1000);
+    return () => clearInterval(interval);
+  }, [heroMedia, heroDuration]);
+
+  useEffect(() => {
+    if (aboutMedia.length <= 1) return;
+    const interval = setInterval(() => {
+      setAboutIndex(prev => (prev + 1) % aboutMedia.length);
+    }, aboutDuration * 1000);
+    return () => clearInterval(interval);
+  }, [aboutMedia, aboutDuration]);
 
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +49,9 @@ export default function Home() {
     setBookingData({ name: "", email: "", date: "", eventType: "", details: "" });
   };
 
+  const activeHero = heroMedia[heroIndex] || null;
+  const activeAbout = aboutMedia[aboutIndex] || null;
+
   return (
     <div className="min-h-screen bg-background text-foreground relative selection:bg-primary/30">
       <div className="grain-overlay"></div>
@@ -38,17 +59,32 @@ export default function Home() {
 
       {/* HERO SECTION */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={heroBg} 
-            alt="DJ Nacci Live" 
-            className="w-full h-full object-cover opacity-60"
-          />
+        <div className="absolute inset-0 z-0 bg-black">
+          {activeHero && (
+            <div key={activeHero.id} className="absolute inset-0 animate-in fade-in duration-1000">
+              {activeHero.type === 'video' ? (
+                <video 
+                  src={activeHero.url} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover opacity-60"
+                />
+              ) : (
+                <img 
+                  src={activeHero.url} 
+                  alt="DJ Nacci Live" 
+                  className="w-full h-full object-cover opacity-60"
+                />
+              )}
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background"></div>
         </div>
         
-        <div className="container relative z-10 px-6 text-center mt-20">
+        <div className="container relative z-10 px-6 text-center mt-20 pointer-events-none">
           <p className="text-primary tracking-[0.3em] uppercase text-sm mb-4 animate-in slide-in-from-bottom-4 duration-700">
             The Afro House Experience
           </p>
@@ -57,7 +93,7 @@ export default function Home() {
           </h1>
           <a 
             href="#booking"
-            className="inline-block border border-primary text-primary px-8 py-4 uppercase tracking-widest text-sm hover:bg-primary hover:text-black transition-all duration-500 animate-in fade-in duration-1000 delay-300"
+            className="pointer-events-auto inline-block border border-primary text-primary px-8 py-4 uppercase tracking-widest text-sm hover:bg-primary hover:text-black transition-all duration-500 animate-in fade-in duration-1000 delay-300"
           >
             Book The Artist
           </a>
@@ -70,11 +106,30 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="absolute -inset-4 border border-primary/20 translate-x-4 translate-y-4 -z-10"></div>
-              <img 
-                src={djPortrait} 
-                alt="DJ Nacci Portrait" 
-                className="w-full h-[600px] object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-700"
-              />
+              
+              <div className="w-full h-[600px] bg-black relative overflow-hidden">
+                {activeAbout && (
+                  <div key={activeAbout.id} className="absolute inset-0 animate-in fade-in duration-1000">
+                    {activeAbout.type === 'video' ? (
+                      <video 
+                        src={activeAbout.url} 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline 
+                        className="w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-700"
+                      />
+                    ) : (
+                      <img 
+                        src={activeAbout.url} 
+                        alt="DJ Nacci Portrait" 
+                        className="w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-700"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
             </div>
             <div>
               <h2 className="font-serif text-4xl md:text-5xl font-bold uppercase tracking-widest text-glow mb-8">
