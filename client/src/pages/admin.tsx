@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Image as ImageIcon, Video, Trash2, Link as LinkIcon, 
-  Settings, LayoutGrid, Upload, Inbox, Check, Youtube, Phone
+  Settings, LayoutGrid, Upload, Inbox, Check, Youtube, Phone,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings, MediaItem, SocialLinks } from "@/contexts/SettingsContext";
@@ -75,6 +76,23 @@ export default function Admin() {
       updateHeroMedia(heroMedia.map(m => m.id === id ? { ...m, ...updates } : m));
     } else {
       updateAboutMedia(aboutMedia.map(m => m.id === id ? { ...m, ...updates } : m));
+    }
+  };
+
+  const moveMedia = (section: 'hero' | 'about', index: number, direction: 'left' | 'right') => {
+    const mediaList = section === 'hero' ? [...heroMedia] : [...aboutMedia];
+    const updateFn = section === 'hero' ? updateHeroMedia : updateAboutMedia;
+    
+    if (direction === 'left' && index > 0) {
+      const temp = mediaList[index];
+      mediaList[index] = mediaList[index - 1];
+      mediaList[index - 1] = temp;
+      updateFn(mediaList);
+    } else if (direction === 'right' && index < mediaList.length - 1) {
+      const temp = mediaList[index];
+      mediaList[index] = mediaList[index + 1];
+      mediaList[index + 1] = temp;
+      updateFn(mediaList);
     }
   };
 
@@ -382,7 +400,7 @@ export default function Admin() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {heroMedia.map((media) => (
+                  {heroMedia.map((media, index) => (
                     <div key={media.id} className="group flex flex-col bg-card border border-border/20 overflow-hidden relative">
                       <div className="aspect-video bg-black relative">
                         {media.type === 'image' ? (
@@ -393,6 +411,26 @@ export default function Admin() {
                         <div className="absolute top-2 left-2 text-[10px] bg-black/80 px-2 py-1 uppercase text-primary border border-primary/30">
                           {media.type}
                         </div>
+                        
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => moveMedia('hero', index, 'left')}
+                            disabled={index === 0}
+                            className="p-1.5 bg-black/80 text-white rounded-sm hover:bg-black hover:text-primary disabled:opacity-30 disabled:hover:text-white transition-colors"
+                            title="Move Left"
+                          >
+                            <ChevronLeft size={14} />
+                          </button>
+                          <button 
+                            onClick={() => moveMedia('hero', index, 'right')}
+                            disabled={index === heroMedia.length - 1}
+                            className="p-1.5 bg-black/80 text-white rounded-sm hover:bg-black hover:text-primary disabled:opacity-30 disabled:hover:text-white transition-colors"
+                            title="Move Right"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+
                         <button 
                           onClick={() => removeMedia(media.id, 'hero')}
                           className="absolute top-2 right-2 p-2 bg-destructive text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -477,7 +515,7 @@ export default function Admin() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {aboutMedia.map((media) => (
+                  {aboutMedia.map((media, index) => (
                     <div key={media.id} className="group flex flex-col bg-card border border-border/20 overflow-hidden relative">
                       <div className="aspect-[3/4] bg-black relative">
                         {media.type === 'image' ? (
@@ -488,6 +526,26 @@ export default function Admin() {
                         <div className="absolute top-2 left-2 text-[10px] bg-black/80 px-2 py-1 uppercase text-primary border border-primary/30">
                           {media.type}
                         </div>
+
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => moveMedia('about', index, 'left')}
+                            disabled={index === 0}
+                            className="p-1.5 bg-black/80 text-white rounded-sm hover:bg-black hover:text-primary disabled:opacity-30 disabled:hover:text-white transition-colors"
+                            title="Move Left"
+                          >
+                            <ChevronLeft size={14} />
+                          </button>
+                          <button 
+                            onClick={() => moveMedia('about', index, 'right')}
+                            disabled={index === aboutMedia.length - 1}
+                            className="p-1.5 bg-black/80 text-white rounded-sm hover:bg-black hover:text-primary disabled:opacity-30 disabled:hover:text-white transition-colors"
+                            title="Move Right"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+
                         <button 
                           onClick={() => removeMedia(media.id, 'about')}
                           className="absolute top-2 right-2 p-2 bg-destructive text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
