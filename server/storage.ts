@@ -5,6 +5,7 @@ import { eq, asc } from "drizzle-orm";
 
 export interface IStorage {
   getMediaBySection(section: string): Promise<MediaItem[]>;
+  getMediaItemById(id: string): Promise<MediaItem | undefined>;
   addMediaItem(item: InsertMediaItem): Promise<MediaItem>;
   updateMediaItem(id: string, updates: Partial<InsertMediaItem>): Promise<MediaItem | undefined>;
   deleteMediaItem(id: string): Promise<void>;
@@ -22,6 +23,11 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   async getMediaBySection(section: string): Promise<MediaItem[]> {
     return db.select().from(mediaItems).where(eq(mediaItems.section, section)).orderBy(asc(mediaItems.position));
+  }
+
+  async getMediaItemById(id: string): Promise<MediaItem | undefined> {
+    const [item] = await db.select().from(mediaItems).where(eq(mediaItems.id, id));
+    return item;
   }
 
   async addMediaItem(item: InsertMediaItem): Promise<MediaItem> {

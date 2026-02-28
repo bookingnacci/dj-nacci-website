@@ -2,34 +2,30 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 
-const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const fileStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
-    cb(null, uniqueName);
-  },
-});
-
-const upload = multer({ storage: fileStorage });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
 
-  app.use("/uploads", (await import("express")).default.static(uploadsDir));
+  app.get("/api/media/file/:id", async (req, res) => {
+    const item = await storage.getMediaItemById(req.params.id);
+    if (!item || !item.fileData || !item.mimeType) {
+      return res.status(404).json({ message: "File not found" });
+    }
+    const buffer = Buffer.from(item.fileData, "base64");
+    res.set("Content-Type", item.mimeType);
+    res.set("Content-Length", String(buffer.length));
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    res.send(buffer);
+  });
 
   app.get("/api/media/:section", async (req, res) => {
     const items = await storage.getMediaBySection(req.params.section);
-    res.json(items);
+    const clean = items.map(({ fileData, ...rest }) => rest);
+    res.json(clean);
   });
 
   app.post("/api/media/upload", upload.array("files", 20), async (req, res) => {
@@ -42,30 +38,42 @@ export async function registerRoutes(
     const results = [];
     for (const file of files) {
       const isVideo = file.mimetype.startsWith("video/");
+      const base64Data = file.buffer.toString("base64");
+
       const item = await storage.addMediaItem({
         section,
         type: isVideo ? "video" : "image",
-        url: `/uploads/${file.filename}`,
+        url: "placeholder",
         title: file.originalname,
         duration: 5,
         videoStartTime: 0,
         videoEndTime: 15,
         position: 0,
+        fileData: base64Data,
+        mimeType: file.mimetype,
       });
-      results.push(item);
+
+      const updatedItem = await storage.updateMediaItem(item.id, {
+        url: `/api/media/file/${item.id}`,
+      });
+
+      const { fileData, ...clean } = updatedItem || item;
+      results.push(clean);
     }
     res.json(results);
   });
 
   app.post("/api/media", async (req, res) => {
     const item = await storage.addMediaItem(req.body);
-    res.json(item);
+    const { fileData, ...clean } = item;
+    res.json(clean);
   });
 
   app.patch("/api/media/:id", async (req, res) => {
     const updated = await storage.updateMediaItem(req.params.id, req.body);
     if (!updated) return res.status(404).json({ message: "Not found" });
-    res.json(updated);
+    const { fileData, ...clean } = updated;
+    res.json(clean);
   });
 
   app.delete("/api/media/:id", async (req, res) => {

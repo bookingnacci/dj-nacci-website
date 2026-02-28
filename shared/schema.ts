@@ -13,6 +13,8 @@ export const mediaItems = pgTable("media_items", {
   videoStartTime: integer("video_start_time").default(0),
   videoEndTime: integer("video_end_time").default(15),
   position: integer("position").notNull().default(0),
+  fileData: text("file_data"),
+  mimeType: text("mime_type"),
 });
 
 export const socialLinks = pgTable("social_links", {
