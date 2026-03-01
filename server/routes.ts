@@ -90,8 +90,7 @@ export async function registerRoutes(
         let finalMime = file.mimetype;
 
         if (!isVideo) {
-          const shouldCrop16by9 = section === "hero";
-          const processed = await processImage(file.buffer, file.mimetype, shouldCrop16by9);
+          const processed = await processImage(file.buffer, file.mimetype);
           finalBuffer = processed.data;
           finalMime = processed.mime;
         }

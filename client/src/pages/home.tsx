@@ -91,7 +91,7 @@ export default function Home() {
       <Navbar />
 
       {/* HERO SECTION */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[60vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
           <div key={activeHero?.id || 'fallback'} className="absolute inset-0 animate-in fade-in duration-1000">
             {heroType === 'video' ? (
@@ -99,7 +99,7 @@ export default function Home() {
                 ref={heroVideoRef}
                 src={heroUrl + (activeHero?.videoStartTime != null ? `#t=${activeHero.videoStartTime},${activeHero.videoEndTime || ''}` : '')}
                 autoPlay muted playsInline
-                className="w-full h-full object-cover opacity-60"
+                className="w-full h-full object-contain opacity-60"
                 onTimeUpdate={(e) => {
                   if (activeHero?.videoEndTime && e.currentTarget.currentTime >= activeHero.videoEndTime) {
                     e.currentTarget.currentTime = activeHero.videoStartTime || 0;
@@ -108,7 +108,7 @@ export default function Home() {
                 }}
               />
             ) : (
-              <img src={heroUrl} alt="DJ Nacci Live" className="w-full h-full object-cover opacity-60" />
+              <img src={heroUrl} alt="DJ Nacci Live" className="w-full h-full object-contain opacity-60" />
             )}
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
