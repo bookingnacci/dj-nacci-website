@@ -107,7 +107,7 @@ export default function Home() {
                 ref={heroVideoRef}
                 src={heroUrl + (activeHero?.videoStartTime != null ? `#t=${activeHero.videoStartTime},${activeHero.videoEndTime || ''}` : '')}
                 autoPlay muted playsInline
-                className="w-full h-full object-cover opacity-60"
+                className="w-full h-full object-cover opacity-80"
                 onTimeUpdate={(e) => {
                   if (activeHero?.videoEndTime && e.currentTarget.currentTime >= activeHero.videoEndTime) {
                     e.currentTarget.currentTime = activeHero.videoStartTime || 0;
@@ -116,11 +116,11 @@ export default function Home() {
                 }}
               />
             ) : (
-              <img src={heroUrl} alt="DJ Nacci Live" className={`w-full h-full opacity-60 ${heroIsPortrait ? 'object-contain' : 'object-cover'}`} />
+              <img src={heroUrl} alt="DJ Nacci Live" className={`w-full h-full opacity-80 ${heroIsPortrait ? 'object-contain' : 'object-cover'}`} />
             )}
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/60"></div>
         </div>
         <div className="container relative z-10 px-6 text-center mt-20 pointer-events-none">
           <p className="text-primary tracking-[0.4em] uppercase text-xs md:text-sm mb-6 animate-in slide-in-from-bottom-4 duration-700 font-bold">The Afro House Experience</p>
