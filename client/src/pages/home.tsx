@@ -91,7 +91,7 @@ export default function Home() {
       <Navbar />
 
       {/* HERO SECTION */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
           <div key={activeHero?.id || 'fallback'} className="absolute inset-0 animate-in fade-in duration-1000">
             {heroType === 'video' ? (
