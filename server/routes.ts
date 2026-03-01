@@ -6,13 +6,39 @@ import sharp from "sharp";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-async function processImage(buffer: Buffer, mimetype: string): Promise<{ data: Buffer; mime: string }> {
+async function processImage(buffer: Buffer, mimetype: string, cropTo16by9 = false): Promise<{ data: Buffer; mime: string }> {
   const unsupportedFormats = ["image/heic", "image/heif", "image/webp", "image/tiff", "image/avif"];
+  let img = sharp(buffer);
+
   if (unsupportedFormats.includes(mimetype.toLowerCase())) {
-    const converted = await sharp(buffer).jpeg({ quality: 90 }).toBuffer();
-    return { data: converted, mime: "image/jpeg" };
+    img = img.jpeg({ quality: 90 });
+    mimetype = "image/jpeg";
   }
-  return { data: buffer, mime: mimetype };
+
+  if (cropTo16by9) {
+    const metadata = await sharp(buffer).metadata();
+    if (metadata.width && metadata.height) {
+      const targetRatio = 16 / 9;
+      const currentRatio = metadata.width / metadata.height;
+      let cropWidth = metadata.width;
+      let cropHeight = metadata.height;
+      if (currentRatio > targetRatio) {
+        cropWidth = Math.round(metadata.height * targetRatio);
+      } else if (currentRatio < targetRatio) {
+        cropHeight = Math.round(metadata.width / targetRatio);
+      }
+      const left = Math.round((metadata.width - cropWidth) / 2);
+      const top = Math.round((metadata.height - cropHeight) / 2);
+      img = sharp(buffer).extract({ left, top, width: cropWidth, height: cropHeight });
+      if (unsupportedFormats.includes(mimetype.toLowerCase()) || mimetype === "image/jpeg") {
+        img = img.jpeg({ quality: 90 });
+        mimetype = "image/jpeg";
+      }
+    }
+  }
+
+  const data = await img.toBuffer();
+  return { data, mime: mimetype };
 }
 
 export async function registerRoutes(
@@ -64,7 +90,8 @@ export async function registerRoutes(
         let finalMime = file.mimetype;
 
         if (!isVideo) {
-          const processed = await processImage(file.buffer, file.mimetype);
+          const shouldCrop16by9 = section === "hero";
+          const processed = await processImage(file.buffer, file.mimetype, shouldCrop16by9);
           finalBuffer = processed.data;
           finalMime = processed.mime;
         }
@@ -128,6 +155,26 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error deleting:", err);
       res.status(500).json({ message: "Failed to delete" });
+    }
+  });
+
+  app.post("/api/media/reprocess-hero", async (_req, res) => {
+    try {
+      const heroItems = await storage.getMediaBySection("hero");
+      let count = 0;
+      for (const item of heroItems) {
+        if (item.type === "image" && item.fileData && item.mimeType) {
+          const buffer = Buffer.from(item.fileData, "base64");
+          const processed = await processImage(buffer, item.mimeType, true);
+          const newBase64 = processed.data.toString("base64");
+          await storage.updateMediaItem(item.id, { fileData: newBase64, mimeType: processed.mime });
+          count++;
+        }
+      }
+      res.json({ success: true, reprocessed: count });
+    } catch (err) {
+      console.error("Error reprocessing hero:", err);
+      res.status(500).json({ message: "Failed to reprocess" });
     }
   });
 
