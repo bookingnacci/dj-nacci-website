@@ -85,13 +85,21 @@ export default function Home() {
   const aboutUrl = activeAbout?.url || djPortraitFallback;
   const aboutType = activeAbout?.type || 'image';
 
+  const [heroIsPortrait, setHeroIsPortrait] = useState(false);
+  useEffect(() => {
+    if (heroType !== 'image' || !heroUrl) { setHeroIsPortrait(false); return; }
+    const img = new Image();
+    img.onload = () => setHeroIsPortrait(img.naturalHeight > img.naturalWidth);
+    img.src = heroUrl;
+  }, [heroUrl, heroType]);
+
   return (
     <div className="min-h-screen bg-background text-foreground relative selection:bg-primary/30">
       <div className="grain-overlay"></div>
       <Navbar />
 
       {/* HERO SECTION */}
-      <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
           <div key={activeHero?.id || 'fallback'} className="absolute inset-0 animate-in fade-in duration-1000">
             {heroType === 'video' ? (
@@ -108,7 +116,7 @@ export default function Home() {
                 }}
               />
             ) : (
-              <img src={heroUrl} alt="DJ Nacci Live" className="w-full h-full object-cover opacity-60" />
+              <img src={heroUrl} alt="DJ Nacci Live" className={`w-full h-full opacity-60 ${heroIsPortrait ? 'object-contain' : 'object-cover'}`} />
             )}
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
