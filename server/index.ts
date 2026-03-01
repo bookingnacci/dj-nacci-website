@@ -14,13 +14,14 @@ declare module "http" {
 
 app.use(
   express.json({
+    limit: "100mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: "100mb" }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -48,8 +49,9 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (capturedJsonResponse && !path.includes("/media/file/")) {
+        const str = JSON.stringify(capturedJsonResponse);
+        logLine += ` :: ${str.length > 500 ? str.slice(0, 500) + "..." : str}`;
       }
 
       log(logLine);
